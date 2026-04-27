@@ -1,0 +1,9 @@
+# Lokale Konfiguration – niemals einchecken
+.env
+
+# Rollback-Tag (lokal generiert)
+.rollback_tag
+
+# Editor / OS
+.DS_Store
+*.swp
