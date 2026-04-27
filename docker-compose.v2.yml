@@ -1,0 +1,68 @@
+version: '3.8'
+
+# V2 Stack Overlay – wird automatisch von deploy.sh eingebunden
+# wenn ENABLE_V2=true in .env gesetzt ist.
+#
+# Manuell:
+#   docker compose -f docker-compose.yml -f docker-compose.v2.yml up -d
+
+services:
+
+  # ── calserver API V2 ──────────────────────────────────────────────
+  calserver-api-v2:
+    image: calhelp/calserver-api-v2:${V2_VERSION:-latest}
+    container_name: calserver-api-v2
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DB_CONNECTION=${V2_DB_CONNECTION:-mysql}
+      - DB_HOST=mysql
+      - DB_DATABASE=${MYSQL_DATABASE}
+      - DB_USERNAME=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      # PostgreSQL (wenn V2_DB_CONNECTION=pgsql)
+      - PGPASSWORD=${PG_PASSWORD}
+      - PG_HOST=postgres
+      - PG_DATABASE=${PG_DATABASE:-calserver_v2}
+      - PG_USER=${PG_USER:-calserver_v2}
+    depends_on:
+      - mysql
+    networks:
+      - proxy
+      - internal
+
+  # ── calserver Frontend V2 ─────────────────────────────────────────
+  calserver-frontend:
+    image: calhelp/calserver-frontend:${V2_VERSION:-latest}
+    container_name: calserver-frontend
+    restart: unless-stopped
+    environment:
+      - API_URL=${V2_API_URL:-http://calserver-api-v2:8000}
+    networks:
+      - proxy
+      - internal
+
+  # ── PostgreSQL (optional, nur wenn V2_DB_CONNECTION=pgsql) ────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: calserver-postgres
+    restart: unless-stopped
+    profiles:
+      - pgsql
+    environment:
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE:-calserver_v2}
+      - POSTGRES_USER=${PG_USER:-calserver_v2}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  postgres-data:
+
+networks:
+  proxy:
+    name: proxy
+  internal:
+    name: calserver-internal
