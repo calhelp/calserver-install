@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Let's Encrypt Overlay – gemeinsam mit docker-compose.yml starten:
 #   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
 #

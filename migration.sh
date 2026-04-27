@@ -8,21 +8,27 @@ GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[migration]${NC} $*"; }
 error() { echo -e "${RED}[migration]${NC} $*" >&2; }
 
-if docker ps --filter "name=calserver-app" --filter "status=running" | grep -q calserver-app; then
+source .env 2>/dev/null || true
+
+COMPOSE_FILES="-f docker-compose.yml"
+[[ -n "${LETSENCRYPT_HOST:-}" ]] && COMPOSE_FILES="${COMPOSE_FILES} -f docker-compose.https.yml"
+[[ "${ENABLE_V2:-false}" == "true" ]] && COMPOSE_FILES="${COMPOSE_FILES} -f docker-compose.v2.yml"
+
+RUNNING=$(docker compose $COMPOSE_FILES ps --services --filter status=running 2>/dev/null || true)
+
+if echo "$RUNNING" | grep -q "^app$"; then
   info "Laravel Migrationen (V1) ..."
-  docker exec calserver-app php artisan migrate --force
+  docker compose $COMPOSE_FILES exec app php artisan migrate --force
   info "V1 Migrationen abgeschlossen."
 else
-  error "calserver-app läuft nicht – Migration übersprungen."
+  error "App-Service läuft nicht – Migration übersprungen."
   exit 1
 fi
 
-source .env 2>/dev/null || true
-
 if [[ "${ENABLE_V2:-false}" == "true" ]]; then
-  if docker ps --filter "name=calserver-api-v2" --filter "status=running" | grep -q calserver-api-v2; then
+  if echo "$RUNNING" | grep -q "^calserver-api-v2$"; then
     info "V2 API Migrationen ..."
-    docker exec calserver-api-v2 php artisan migrate --force
+    docker compose $COMPOSE_FILES exec calserver-api-v2 php artisan migrate --force
     info "V2 Migrationen abgeschlossen."
   else
     error "calserver-api-v2 läuft nicht – V2 Migration übersprungen."

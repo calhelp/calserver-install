@@ -1,5 +1,3 @@
-version: '3.8'
-
 # V2 Stack Overlay – wird automatisch von deploy.sh eingebunden
 # wenn ENABLE_V2=true in .env gesetzt ist.
 #

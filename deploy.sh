@@ -51,11 +51,11 @@ docker compose $COMPOSE_FILES up -d --remove-orphans
 
 info "Warte auf App-Container ..."
 sleep 5
-if docker ps --filter "name=calserver-app" --filter "status=running" | grep -q calserver-app; then
-  info "calserver-app läuft."
+if docker compose $COMPOSE_FILES ps --services --filter status=running | grep -q "^app$"; then
+  info "App läuft."
 else
-  error "calserver-app ist nicht gestartet. Logs:"
-  docker logs calserver-app --tail 30
+  error "App ist nicht gestartet. Logs:"
+  docker compose $COMPOSE_FILES logs app --tail 30
   exit 1
 fi
 

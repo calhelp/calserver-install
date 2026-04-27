@@ -15,16 +15,22 @@ echo ""
 echo "=== calserver Health Check ==="
 echo ""
 
-CONTAINERS=(calserver-app calserver-mysql nginx-proxy)
-
 source .env 2>/dev/null || true
-[[ "${ENABLE_V2:-false}" == "true" ]] && CONTAINERS+=(calserver-api-v2 calserver-frontend)
 
-for name in "${CONTAINERS[@]}"; do
-  if docker ps --filter "name=${name}" --filter "status=running" | grep -q "${name}"; then
-    ok "${name} läuft"
+COMPOSE_FILES="-f docker-compose.yml"
+[[ -n "${LETSENCRYPT_HOST:-}" ]] && COMPOSE_FILES="${COMPOSE_FILES} -f docker-compose.https.yml"
+[[ "${ENABLE_V2:-false}" == "true" ]] && COMPOSE_FILES="${COMPOSE_FILES} -f docker-compose.v2.yml"
+
+SERVICES=(app mysql nginx-proxy)
+[[ "${ENABLE_V2:-false}" == "true" ]] && SERVICES+=(calserver-api-v2 calserver-frontend)
+
+RUNNING=$(docker compose $COMPOSE_FILES ps --services --filter status=running 2>/dev/null || true)
+
+for svc in "${SERVICES[@]}"; do
+  if echo "$RUNNING" | grep -q "^${svc}$"; then
+    ok "${svc} läuft"
   else
-    fail "${name} ist NICHT gestartet"
+    fail "${svc} ist NICHT gestartet"
   fi
 done
 

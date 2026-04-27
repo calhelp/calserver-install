@@ -22,7 +22,7 @@ ROLLBACK_FILE=".rollback_tag"
 
 save_rollback_tag() {
   local running_image
-  running_image=$(docker inspect calserver-app --format '{{.Config.Image}}' 2>/dev/null || true)
+  running_image=$(docker compose $COMPOSE_FILES images -q app 2>/dev/null | head -1 || true)
   if [[ -n "$running_image" ]]; then
     echo "$running_image" > "$ROLLBACK_FILE"
     info "Rollback-Tag gesichert: ${running_image}"
@@ -62,7 +62,7 @@ if ! docker compose $COMPOSE_FILES up -d --remove-orphans; then
 fi
 
 sleep 8
-if ! docker ps --filter "name=calserver-app" --filter "status=running" | grep -q calserver-app; then
+if ! docker compose $COMPOSE_FILES ps --services --filter status=running | grep -q "^app$"; then
   error "App-Container nicht gestartet nach Update."
   rollback
 fi
